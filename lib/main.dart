@@ -1,26 +1,23 @@
 /// main.dart — Ponto de entrada da aplicação AURA
 ///
-/// Inicializa Supabase, Firebase e define o roteamento inicial.
+/// Inicializa Supabase e define o roteamento inicial.
+/// Fluxo: Login → Verificar consentimento LGPD → Home
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aura_app/config/supabase_config.dart';
 import 'package:aura_app/screens/login_screen.dart';
+import 'package:aura_app/screens/consent_screen.dart';
 import 'package:aura_app/screens/patient/home_screen.dart';
+import 'package:aura_app/services/api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar Supabase
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
-
-  // TODO: Inicializar Firebase quando as credenciais estiverem configuradas
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
 
   runApp(const AuraApp());
 }
@@ -45,10 +42,12 @@ class AuraApp extends StatelessWidget {
   }
 }
 
-/// _AuthGate — Decide qual tela mostrar baseado no estado de autenticação
+/// _AuthGate — Triagem de autenticação e consentimento LGPD
 ///
-/// Analogia médica: é como a triagem — antes de entrar no sistema,
-/// verificamos se o usuário já está autenticado ou precisa fazer login.
+/// Fluxo:
+/// 1. Sem sessão → LoginScreen
+/// 2. Com sessão, sem consentimento → ConsentScreen
+/// 3. Com sessão e consentimento aceito → PatientHomeScreen
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
 
@@ -61,23 +60,40 @@ class _AuthGate extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF6C63FF),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
             ),
           );
         }
 
-        // Verificar se há sessão ativa
         final session = Supabase.instance.client.auth.currentSession;
 
-        if (session != null) {
-          // Usuário autenticado — ir para home
-          return const PatientHomeScreen();
-        } else {
-          // Não autenticado — ir para login
+        if (session == null) {
           return const LoginScreen();
         }
+
+        // Autenticado — verificar se já aceitou o consentimento LGPD
+        return FutureBuilder<bool>(
+          future: ApiService().hasActiveConsent(),
+          builder: (context, consentSnapshot) {
+            if (consentSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
+                ),
+              );
+            }
+
+            final hasConsent = consentSnapshot.data ?? false;
+
+            if (!hasConsent) {
+              // Primeiro acesso — mostrar termo de consentimento LGPD
+              return const ConsentScreen();
+            }
+
+            // Tudo certo — ir para home
+            return const PatientHomeScreen();
+          },
+        );
       },
     );
   }

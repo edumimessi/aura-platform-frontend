@@ -127,6 +127,46 @@ class ApiService {
   }
 
   // ============================================================
+  // CONSENTIMENTO LGPD
+  // ============================================================
+
+  /// Verifica se o usuário já tem consentimento ativo registrado
+  Future<bool> hasActiveConsent() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/consent/status'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['has_active_consent'] == true;
+      }
+      return false;
+    } catch (e) {
+      // Em caso de erro de conexão (ex: backend offline), não bloquear o usuário
+      // mas registrar o problema
+      return false;
+    }
+  }
+
+  /// Registra o aceite do consentimento LGPD
+  Future<Map<String, dynamic>> registerConsent(
+      Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/consent'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erro ao registrar consentimento: ${response.body}');
+    }
+  }
+
+  // ============================================================
   // DEVICE REGISTRATION
   // ============================================================
 
