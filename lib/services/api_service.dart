@@ -127,6 +127,80 @@ class ApiService {
   }
 
   // ============================================================
+  // DASHBOARD MÉDICO
+  // ============================================================
+
+  /// Lista pacientes com status de adesão
+  Future<List<dynamic>> getDashboardPatients() async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/dashboard/patients'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Erro ao buscar pacientes: ${response.body}');
+  }
+
+  /// Resumo clínico de um paciente
+  Future<Map<String, dynamic>> getPatientSummary(String patientId) async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/dashboard/patients/$patientId/summary'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Erro ao buscar resumo: ${response.body}');
+  }
+
+  /// Lista alertas clínicos abertos
+  Future<List<dynamic>> getDashboardAlerts() async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/dashboard/alerts'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Erro ao buscar alertas: ${response.body}');
+  }
+
+  /// Resolve um alerta clínico
+  Future<void> resolveAlert(String alertId) async {
+    final headers = await _getHeaders();
+    final response = await http.put(
+      Uri.parse('$_baseUrl/api/dashboard/alerts/$alertId/resolve'),
+      headers: headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Erro ao resolver alerta: ${response.body}');
+    }
+  }
+
+  /// Módulos ativos de um paciente
+  Future<List<dynamic>> getPatientModules(String patientId) async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/dashboard/patients/$patientId/modules'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Erro ao buscar módulos: ${response.body}');
+  }
+
+  /// Ativa ou desativa um módulo de um paciente
+  Future<void> togglePatientModule(
+      String patientId, String moduleCode, bool isActive) async {
+    final headers = await _getHeaders();
+    final response = await http.put(
+      Uri.parse('$_baseUrl/api/dashboard/patients/$patientId/modules'),
+      headers: headers,
+      body: jsonEncode({'module_code': moduleCode, 'is_active': isActive}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Erro ao alterar módulo: ${response.body}');
+    }
+  }
+
+  // ============================================================
   // CONSENTIMENTO LGPD
   // ============================================================
 
