@@ -16,9 +16,9 @@ dependencies:
   # supabase_flutter já inclui supabase como dependência interna
   supabase_flutter: ^2.3.0
 
-  # Notificações
-  firebase_messaging: ^14.7.0
-  firebase_core: ^2.24.0
+  # Notificações (Firebase removido temporariamente — será adicionado na Fase 2)
+  # firebase_messaging: ^14.7.0
+  # firebase_core: ^2.24.0
 
   # Offline-first
   sqflite: ^2.3.0
