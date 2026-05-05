@@ -87,6 +87,46 @@ class ApiService {
   }
 
   // ============================================================
+  // MÓDULOS GENÉRICOS (sono, exercício, meditação, dieta, sintomas, medicação)
+  // ============================================================
+
+  /// Cria um registro para qualquer módulo via endpoint genérico.
+  /// [module] pode ser: 'sleep', 'exercise', 'meditation', 'diet', 'symptoms', 'medications'
+  Future<Map<String, dynamic>> createModuleRecord(
+      String module, Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/modules/$module'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erro ao criar registro de $module: ${response.body}');
+    }
+  }
+
+  /// Busca registros de qualquer módulo por paciente
+  Future<List<dynamic>> getModuleRecords(String module, String patientId,
+      {int days = 30}) async {
+    final headers = await _getHeaders();
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/modules/$module/$patientId?days=$days'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erro ao buscar registros de $module: ${response.body}');
+    }
+  }
+
+  // ============================================================
   // DEVICE REGISTRATION
   // ============================================================
 
