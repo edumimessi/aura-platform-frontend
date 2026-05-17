@@ -14,6 +14,11 @@ import 'package:aura_app/services/api_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (!SupabaseConfig.isSupabaseConfigured) {
+    runApp(const AuraApp(configurationError: true));
+    return;
+  }
+
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
@@ -23,7 +28,9 @@ Future<void> main() async {
 }
 
 class AuraApp extends StatelessWidget {
-  const AuraApp({super.key});
+  final bool configurationError;
+
+  const AuraApp({super.key, this.configurationError = false});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +44,29 @@ class AuraApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const _AuthGate(),
+      home: configurationError
+          ? const _ConfigurationErrorScreen()
+          : const _AuthGate(),
+    );
+  }
+}
+
+class _ConfigurationErrorScreen extends StatelessWidget {
+  const _ConfigurationErrorScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Configure SUPABASE_ANON_KEY para iniciar o AURA.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -56,7 +85,6 @@ class _AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        // Enquanto carrega
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
@@ -71,7 +99,6 @@ class _AuthGate extends StatelessWidget {
           return const LoginScreen();
         }
 
-        // Autenticado — verificar se já aceitou o consentimento LGPD
         return FutureBuilder<bool>(
           future: ApiService().hasActiveConsent(),
           builder: (context, consentSnapshot) {
@@ -86,11 +113,9 @@ class _AuthGate extends StatelessWidget {
             final hasConsent = consentSnapshot.data ?? false;
 
             if (!hasConsent) {
-              // Primeiro acesso — mostrar termo de consentimento LGPD
               return const ConsentScreen();
             }
 
-            // Tudo certo — ir para home
             return const PatientHomeScreen();
           },
         );

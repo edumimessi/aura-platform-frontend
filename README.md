@@ -2,42 +2,13 @@
 
 App mobile e web de acompanhamento psiquiátrico ambulatorial.
 
-## Estrutura do Projeto
-
-```
-aura-platform-frontend/
-├── lib/
-│   ├── main.dart                        # Ponto de entrada
-│   ├── config/
-│   │   └── supabase_config.dart         # Configuração de conexões
-│   ├── models/
-│   │   ├── mood_record.dart             # Modelo de humor
-│   │   └── crisis_record.dart          # Modelo de crise
-│   ├── services/
-│   │   ├── auth_service.dart            # Autenticação Supabase
-│   │   ├── api_service.dart             # Chamadas ao backend
-│   │   ├── local_storage_service.dart   # SQLite (offline)
-│   │   └── sync_service.dart            # Sincronização offline
-│   ├── screens/
-│   │   ├── login_screen.dart            # Tela de login
-│   │   ├── patient/
-│   │   │   ├── home_screen.dart         # Home do paciente
-│   │   │   ├── mood_screen.dart         # Registro de humor
-│   │   │   └── crisis_screen.dart      # Registro de crise
-│   │   └── doctor/                     # (Em desenvolvimento)
-│   └── widgets/                        # (Em desenvolvimento)
-├── pubspec.yaml
-├── .gitignore
-└── README.md
-```
-
 ## Instalação
 
 ### 1. Pré-requisitos
 
 - Flutter SDK 3.0+
 - Android Studio ou VS Code
-- Dispositivo Android/iOS ou emulador
+- Dispositivo Android/iOS, emulador ou Chrome para web
 
 ### 2. Clonar o repositório
 
@@ -54,73 +25,87 @@ flutter pub get
 
 ### 4. Configurar credenciais
 
-Edite `lib/config/supabase_config.dart`:
+O app lê configuração por `--dart-define`, sem colocar chaves diretamente no código.
 
-```dart
-class SupabaseConfig {
-  static const String supabaseUrl = 'https://SEU_PROJETO.supabase.co';
-  static const String supabaseAnonKey = 'SUA_ANON_KEY';
-  static const String apiBaseUrl = 'http://SEU_BACKEND:8000';
-}
-```
+Variáveis suportadas:
 
-### 5. Executar o app
+- `SUPABASE_URL`: URL do projeto Supabase. Se omitida, usa o projeto atual configurado em `SupabaseConfig`.
+- `SUPABASE_ANON_KEY`: chave anon/public do Supabase. Obrigatória para login.
+- `API_BASE_URL`: URL do backend FastAPI. Se omitida, usa `http://10.0.2.2:8000`, útil para emulador Android.
+
+Exemplo web/local:
 
 ```bash
-# Android/iOS
-flutter run
-
-# Web (dashboard médico)
-flutter run -d chrome
+flutter run -d chrome \
+  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY \
+  --dart-define=API_BASE_URL=http://localhost:8000
 ```
 
-## Módulos Implementados
+Exemplo Android/emulador:
 
-| Módulo | Status |
-|--------|--------|
-| Login / Autenticação | ✅ Implementado |
-| Registro de Humor | ✅ Implementado |
-| Registro de Crise | ✅ Implementado |
-| Sincronização Offline | ✅ Implementado |
-| Medicações | 🔄 Em desenvolvimento |
-| Sono | 🔄 Em desenvolvimento |
-| Exercícios | 🔄 Em desenvolvimento |
-| Meditação | 🔄 Em desenvolvimento |
-| Dashboard Médico | 🔄 Em desenvolvimento |
-| Alertas Push | 🔄 Em desenvolvimento |
+```bash
+flutter run \
+  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY \
+  --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+Se `SUPABASE_ANON_KEY` não for informada, o app mostra uma tela de configuração em vez de tentar inicializar o Supabase com valor inválido.
+
+## Estrutura do Projeto
+
+```text
+aura-platform-frontend/
+├── assets/
+│   ├── icons/
+│   └── images/
+├── lib/
+│   ├── main.dart
+│   ├── config/
+│   │   └── supabase_config.dart
+│   ├── models/
+│   │   ├── mood_record.dart
+│   │   └── crisis_record.dart
+│   ├── services/
+│   │   ├── auth_service.dart
+│   │   ├── api_service.dart
+│   │   ├── local_storage_service.dart
+│   │   └── sync_service.dart
+│   └── screens/
+│       ├── login_screen.dart
+│       ├── consent_screen.dart
+│       ├── doctor/
+│       └── patient/
+├── test/
+├── pubspec.yaml
+└── README.md
+```
 
 ## Arquitetura
 
-O app segue o padrão **offline-first**:
+O app usa autenticação Supabase e sincronização offline-first nos registros críticos de humor, crise e medicação pendente:
 
-1. Dados são salvos localmente (SQLite) imediatamente.
-2. Quando há internet, o app sincroniza com o backend.
-3. Isso garante funcionamento mesmo sem conexão.
+1. Dados críticos são salvos localmente no SQLite.
+2. A sincronização converte o formato local antes de enviar para a API.
+3. Registros com falha permanecem marcados como pendentes e guardam `sync_error` para nova tentativa.
+
+Alguns módulos complementares ainda enviam direto para a API e devem ser migrados para o mesmo padrão offline-first nas próximas etapas.
 
 ## Segurança
 
-- ✅ Autenticação via Supabase Auth (JWT)
-- ✅ Token JWT enviado em todas as requisições
-- ✅ Dados sensíveis não armazenados em texto plano
-- ✅ Firebase credentials não commitadas
+- Autenticação via Supabase Auth (JWT)
+- Token JWT enviado nas requisições ao backend
+- Chave Supabase anon configurada por ambiente
+- Service key nunca deve ser usada no app
+- Firebase credentials não commitadas
 
 ## Próximos Passos
 
-- [ ] Implementar tela de medicações
-- [ ] Implementar tela de sono
-- [ ] Implementar tela de exercícios
-- [ ] Implementar tela de meditação
-- [ ] Implementar dashboard do médico
+- [ ] Migrar sono, exercício, meditação, dieta e sintomas para SQLite + SyncService
+- [ ] Buscar medicações e sintomas reais do backend em vez de dados mockados
+- [ ] Adicionar runners Flutter completos (`android/`, `ios/`, `web/`) quando o alvo de build for definido
 - [ ] Integrar Firebase Cloud Messaging
 - [ ] Implementar gráficos de tendência
-- [ ] Adicionar testes de widget
-
-## Contribuindo
-
-1. Crie uma branch: `git checkout -b feature/minha-feature`
-2. Commit: `git commit -am 'Adiciona minha feature'`
-3. Push: `git push origin feature/minha-feature`
-4. Abra um Pull Request
+- [ ] Expandir testes de widget e integração
 
 ## Licença
 

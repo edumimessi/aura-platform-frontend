@@ -31,14 +31,12 @@ class CrisisRecord {
       id: map['id'] as String,
       patientId: map['patient_id'] as String,
       intensity: map['intensity'] as int,
-      crisisTypes: List<String>.from(map['crisis_types'] ?? []),
-      hasSuicidalIdeation: map['has_suicidal_ideation'] as bool? ?? false,
-      copingUsed: map['coping_used'] != null
-          ? List<String>.from(map['coping_used'])
-          : null,
+      crisisTypes: _stringList(map['crisis_types']),
+      hasSuicidalIdeation: _boolValue(map['has_suicidal_ideation']),
+      copingUsed: _stringListOrNull(map['coping_used']),
       notes: map['notes'] as String?,
       occurredAt: DateTime.parse(map['occurred_at'] as String),
-      synced: (map['synced'] as int? ?? 0) == 1,
+      synced: _boolValue(map['synced']),
     );
   }
 
@@ -61,8 +59,35 @@ class CrisisRecord {
       'intensity': intensity,
       'crisis_types': crisisTypes,
       'has_suicidal_ideation': hasSuicidalIdeation,
-      'coping_used': copingUsed,
+      'coping_used': copingUsed ?? <String>[],
       'notes': notes,
+      'occurred_at': occurredAt.toIso8601String(),
     };
+  }
+
+  static List<String>? _stringListOrNull(dynamic value) {
+    final values = _stringList(value);
+    return values.isEmpty ? null : values;
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value == null) return <String>[];
+    if (value is List) return value.map((item) => item.toString()).toList();
+    if (value is String) {
+      if (value.trim().isEmpty) return <String>[];
+      return value
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return <String>[value.toString()];
+  }
+
+  static bool _boolValue(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) return value == '1' || value.toLowerCase() == 'true';
+    return false;
   }
 }
